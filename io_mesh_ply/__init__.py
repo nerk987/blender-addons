@@ -25,7 +25,8 @@ bl_info = {
     "blender": (2, 82, 0),
     "location": "File > Import-Export",
     "description": "Import-Export PLY mesh data with UVs and vertex colors",
-    "wiki_url": "https://docs.blender.org/manual/en/latest/addons/io_mesh_ply.html",
+    "wiki_url": "https://docs.blender.org/manual/en/dev/addons/"
+                "import_export/io_mesh_ply.html",
     "support": 'OFFICIAL',
     "category": "Import-Export",
 }
@@ -69,6 +70,13 @@ class ImportPLY(bpy.types.Operator, ImportHelper):
             "the PLY file"
         ),
         type=bpy.types.OperatorFileListElement)
+
+    # Hide opertator properties, rest of this is managed in C. See WM_operator_properties_filesel().
+    hide_props_region: BoolProperty(
+        name="Hide Operator Properties",
+        description="Collapse the region displaying the operator settings",
+        default=True,
+    )
 
     directory: StringProperty()
 

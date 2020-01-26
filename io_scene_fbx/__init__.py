@@ -21,12 +21,13 @@
 bl_info = {
     "name": "FBX format",
     "author": "Campbell Barton, Bastien Montagne, Jens Restemeier",
-    "version": (4, 20, 1),
+    "version": (4, 20, 2),
     "blender": (2, 81, 6),
     "location": "File > Import-Export",
     "description": "FBX IO meshes, UV's, vertex colors, materials, textures, cameras, lamps and actions",
     "warning": "",
-    "wiki_url": "https://docs.blender.org/manual/en/latest/addons/io_scene_fbx.html",
+    "wiki_url": "https://docs.blender.org/manual/en/dev/addons/"
+                "import_export/io_scene_fbx.html",
     "support": 'OFFICIAL',
     "category": "Import-Export",
 }

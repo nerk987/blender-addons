@@ -155,7 +155,7 @@ process_sources = (
 
 
 class KillBgProcess(bpy.types.Operator):
-    '''Remove  processes in background.'''
+    '''Remove processes in background'''
     bl_idname = "object.kill_bg_process"
     bl_label = "Kill Background Process"
     bl_options = {'REGISTER'}
@@ -237,5 +237,6 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(KillBgProcess)
-    bpy.app.timers.unregister(bg_update)
+    if bpy.app.timers.is_registered(bg_update):
+        bpy.app.timers.unregister(bg_update)
 

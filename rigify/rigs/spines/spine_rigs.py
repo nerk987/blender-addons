@@ -24,7 +24,7 @@ from itertools import count
 
 from ...utils.layers import ControlLayersOption
 from ...utils.naming import make_derived_name
-from ...utils.bones import align_bone_orientation, align_bone_to_axis, put_bone
+from ...utils.bones import align_bone_orientation, align_bone_to_axis, put_bone, set_bone_widget_transform
 from ...utils.widgets_basic import create_cube_widget
 from ...utils.switch_parent import SwitchParentBuilder
 from ...utils.components import CustomPivotControl
@@ -99,7 +99,8 @@ class BaseSpineRig(TweakChainRig):
         org_parent = self.get_bone_parent(self.bones.org[0])
         parents = [org_parent] if org_parent else []
 
-        pbuilder.register_parent(self, self.get_master_control_output, name='Torso')
+        pbuilder.register_parent(self, self.get_master_control_output, name='Torso', tags={'torso', 'child'})
+
         pbuilder.build_child(
             self, master_name, exclude_self=True,
             extra_parents=parents, select_parent=org_parent,
@@ -110,8 +111,8 @@ class BaseSpineRig(TweakChainRig):
         self.register_parent_bones(pbuilder)
 
     def register_parent_bones(self, pbuilder):
-        pbuilder.register_parent(self, self.bones.org[0], name='Hips', exclude_self=True)
-        pbuilder.register_parent(self, self.bones.org[-1], name='Chest', exclude_self=True)
+        pbuilder.register_parent(self, self.bones.org[0], name='Hips', exclude_self=True, tags={'hips'})
+        pbuilder.register_parent(self, self.bones.org[-1], name='Chest', exclude_self=True, tags={'chest'})
 
     @stage.parent_bones
     def parent_master_control(self):
@@ -123,10 +124,9 @@ class BaseSpineRig(TweakChainRig):
 
     @stage.generate_widgets
     def make_master_control_widget(self):
-        create_cube_widget(
-            self.obj, self.bones.ctrl.master,
-            radius=0.5,
-        )
+        master = self.bones.ctrl.master
+        set_bone_widget_transform(self.obj, master, self.get_master_control_output())
+        create_cube_widget(self.obj, master, radius=0.5)
 
     ####################################################
     # Tweak bones

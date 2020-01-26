@@ -121,10 +121,10 @@ class Rig(BaseLimbRig):
     # IK controls
 
     def get_extra_ik_controls(self):
+        controls = super().get_extra_ik_controls() + [self.bones.ctrl.heel]
         if self.pivot_type == 'ANKLE_TOE':
-            return [self.bones.ctrl.heel, self.bones.ctrl.ik_spin]
-        else:
-            return [self.bones.ctrl.heel]
+            controls += [self.bones.ctrl.ik_spin]
+        return controls
 
     def make_ik_control_bone(self, orgs):
         name = self.copy_bone(orgs[2], make_derived_name(orgs[2], 'ctrl', '_ik'))
@@ -145,14 +145,16 @@ class Rig(BaseLimbRig):
     def register_switch_parents(self, pbuilder):
         super().register_switch_parents(pbuilder)
 
-        pbuilder.register_parent(self, self.bones.org.main[2], exclude_self=True)
+        pbuilder.register_parent(self, self.bones.org.main[2], exclude_self=True, tags={'limb_end'})
 
     def make_ik_ctrl_widget(self, ctrl):
         obj = create_foot_widget(self.obj, ctrl)
 
         if self.pivot_type != 'TOE':
+            ctrl = self.get_bone(ctrl)
             org = self.get_bone(self.bones.org.main[2])
-            adjust_widget_transform_mesh(obj, Matrix.Translation(org.vector))
+            offset = org.tail - (ctrl.custom_shape_transform or ctrl).head
+            adjust_widget_transform_mesh(obj, Matrix.Translation(offset))
 
     ####################################################
     # IK pivot controls

@@ -3,7 +3,7 @@
 # This Blender add-on assigns one or more Bezier Curves as shape keys to another
 # Bezier Curve
 #
-# Supported Blender Version: 2.80 Beta
+# Supported Blender Versions: 2.8x
 #
 # Copyright (C) 2019  Shrinivas Kulkarni
 #
@@ -27,22 +27,29 @@ bl_info = {
     "location": "View 3D > Sidebar > Edit Tab",
     "description": "Assigns one or more Bezier curves as shape keys to another Bezier curve",
     "category": "Add Curve",
-    "wiki_url": "https://docs.blender.org/manual/nb/dev/addons/"
+    "wiki_url": "https://docs.blender.org/manual/en/dev/addons/"
                 "add_curve/assign_shape_keys.html",
     "blender": (2, 80, 0),
 }
+
+alignList = [('minX', 'Min X', 'Align vertices with Min X'),
+            ('maxX', 'Max X', 'Align vertices with Max X'),
+            ('minY', 'Min Y', 'Align vertices with Min Y'),
+            ('maxY', 'Max Y', 'Align vertices with Max Y'),
+            ('minZ', 'Min Z', 'Align vertices with Min Z'),
+            ('maxZ', 'Max Z', 'Align vertices with Max Z')]
 
 matchList = [('vCnt', 'Vertex Count', 'Match by vertex count'),
             ('bbArea', 'Area', 'Match by surface area of the bounding box'), \
             ('bbHeight', 'Height', 'Match by bounding box height'), \
             ('bbWidth', 'Width', 'Match by bounding box width'),
             ('bbDepth', 'Depth', 'Match by bounding box depth'),
-            ('minX', 'Min X', 'Match by  bounding bon Min X'),
-            ('maxX', 'Max X', 'Match by  bounding bon Max X'),
-            ('minY', 'Min Y', 'Match by  bounding bon Min Y'),
-            ('maxY', 'Max Y', 'Match by  bounding bon Max Y'),
-            ('minZ', 'Min Z', 'Match by  bounding bon Min Z'),
-            ('maxZ', 'Max Z', 'Match by  bounding bon Max Z')]
+            ('minX', 'Min X', 'Match by bounding box Min X'),
+            ('maxX', 'Max X', 'Match by bounding box Max X'),
+            ('minY', 'Min Y', 'Match by bounding box Min Y'),
+            ('maxY', 'Max Y', 'Match by bounding box Max Y'),
+            ('minZ', 'Min Z', 'Match by bounding box Min Z'),
+            ('maxZ', 'Max Z', 'Match by bounding box Max Z')]
 
 DEF_ERR_MARGIN = 0.0001
 
@@ -393,20 +400,15 @@ class Path:
         self.curve.data = self.getNewCurveData()
         bpy.data.curves.remove(curveData)
 
-def main(removeOriginal, space, matchParts, matchCriteria, alignBy, alignValues):
-    targetObj = bpy.context.active_object
-    if(targetObj == None or not isBezier(targetObj)):
-        return
+def main(targetObj, shapekeyObjs, removeOriginal, space, matchParts, \
+    matchCriteria, alignBy, alignValues):
 
     target = Path(targetObj)
 
-    shapekeys = [Path(c) for c in bpy.context.selected_objects if isBezier(c) \
-        and c != bpy.context.active_object]
+    shapekeys = [Path(c) for c in shapekeyObjs]
 
-    if(len(shapekeys) == 0):
-        return
-
-    shapekeys = getExistingShapeKeyPaths(target) + shapekeys
+    existingKeys = getExistingShapeKeyPaths(target)
+    shapekeys = existingKeys + shapekeys
     userSel = [target] + shapekeys
 
     for path in userSel:
@@ -432,16 +434,15 @@ def main(removeOriginal, space, matchParts, matchCriteria, alignBy, alignValues)
 
     target.updateCurve()
 
-    target.curve.shape_key_add(name = 'Basis')
+    if(len(existingKeys) == 0):
+        target.curve.shape_key_add(name = 'Basis')
 
     addShapeKeys(target.curve, shapekeys, space)
 
     if(removeOriginal):
         for path in userSel:
             if(path.curve != target.curve):
-                safeRemoveCurveObj(path.curve)
-
-    return {}
+                safeRemoveObj(path.curve)
 
 def getSplineSegs(spline):
     p = spline.bezier_points
@@ -711,7 +712,7 @@ def getExistingShapeKeyPaths(path):
     paths = []
 
     if(obj.data.shape_keys != None):
-        keyblocks = obj.data.shape_keys.key_blocks[1:]#Skip basis
+        keyblocks = obj.data.shape_keys.key_blocks[:]
         for key in keyblocks:
             datacopy = obj.data.copy()
             i = 0
@@ -736,7 +737,7 @@ def addShapeKeys(curve, paths, space):
             key.data[i].handle_right = pt[2]
 
 #TODO: Remove try
-def safeRemoveCurveObj(obj):
+def safeRemoveObj(obj):
     try:
         collections = obj.users_collection
 
@@ -779,14 +780,19 @@ class AssignShapeKeysOp(Operator):
         matchCri2 = params.matchCri2
         matchCri3 = params.matchCri3
 
-        alignBy = params.alignList
+        alignBy = params.alignCos
         alignVal1 = params.alignVal1
         alignVal2 = params.alignVal2
         alignVal3 = params.alignVal3
 
-        createdObjsMap = main(removeOriginal, space, \
-                            matchParts, [matchCri1, matchCri2, matchCri3], \
-                                alignBy, [alignVal1, alignVal2, alignVal3])
+        targetObj = bpy.context.active_object
+        shapekeyObjs = [obj for obj in bpy.context.selected_objects if isBezier(obj) \
+            and obj != targetObj]
+
+        if(targetObj != None and isBezier(targetObj) and len(shapekeyObjs) > 0):
+            main(targetObj, shapekeyObjs, removeOriginal, space, \
+                    matchParts, [matchCri1, matchCri2, matchCri3], \
+                            alignBy, [alignVal1, alignVal2, alignVal3])
 
         return {'FINISHED'}
 
@@ -1000,20 +1006,20 @@ class AssignShapeKeyParams(bpy.types.PropertyGroup):
                  ('localspace', 'Local Space', 'localspace')], \
         description = 'Space that shape keys are evluated in')
 
-    alignList : EnumProperty(name="Vertex Alignment", items = \
+    alignCos : EnumProperty(name="Vertex Alignment", items = \
         [("-None-", 'Manual Alignment', "Align curve segments based on starting vertex"), \
          ('vertCo', 'Vertex Coordinates', 'Align curve segments based on vertex coordinates')], \
         description = 'Start aligning the vertices of target and shape keys from',
         default = '-None-')
 
     alignVal1 : EnumProperty(name="Value 1",
-        items = matchList, default = 'minX', description='First align criterion')
+        items = alignList, default = 'minX', description='First align criterion')
 
     alignVal2 : EnumProperty(name="Value 2",
-        items = matchList, default = 'maxY', description='Second align criterion')
+        items = alignList, default = 'maxY', description='Second align criterion')
 
     alignVal3 : EnumProperty(name="Value 3",
-        items = matchList, default = 'minZ', description='Third align criterion')
+        items = alignList, default = 'minZ', description='Third align criterion')
 
     matchParts : EnumProperty(name="Match Parts", items = \
         [("-None-", 'None', "Don't match parts"), \
@@ -1063,9 +1069,9 @@ class AssignShapeKeysPanel(Panel):
             row.prop(params, "space")
 
             row = col.row()
-            row.prop(params, "alignList")
+            row.prop(params, "alignCos")
 
-            if(params.alignList == 'vertCo'):
+            if(params.alignCos == 'vertCo'):
                 row = col.row()
                 row.prop(params, "alignVal1")
                 row.prop(params, "alignVal2")

@@ -19,8 +19,8 @@
 bl_info = {
     "name": "BlenderKit Asset Library",
     "author": "Vilem Duha, Petr Dlouhy",
-    "version": (1, 0, 28),
-    "blender": (2, 80, 0),
+    "version": (1, 0, 29),
+    "blender": (2, 82, 0),
     "location": "View3D > Properties > BlenderKit",
     "description": "Online BlenderKit library (materials, models, brushes and more)",
     "warning": "",
@@ -91,6 +91,17 @@ def scene_load(context):
     preferences = bpy.context.preferences.addons['blenderkit'].preferences
     preferences.login_attempt = False
 
+def check_timers_timer():
+    ''' checks if all timers are registered regularly. Prevents possible bugs from stopping the addon.'''
+    if not bpy.app.timers.is_registered(search.timer_update):
+        bpy.app.timers.register(search.timer_update)
+    if not bpy.app.timers.is_registered(download.timer_update):
+        bpy.app.timers.register(download.timer_update)
+    if not (bpy.app.timers.is_registered(tasks_queue.queue_worker)):
+        bpy.app.timers.register(tasks_queue.queue_worker)
+    if not bpy.app.timers.is_registered(bg_blender.bg_update):
+        bpy.app.timers.register(bg_blender.bg_update)
+    return 5.0
 
 licenses = (
     ('royalty_free', 'Royalty Free', 'royalty free commercial license'),
@@ -233,29 +244,43 @@ def switch_search_results(self, context):
         s['search results orig'] = s.get('bkit brush search orig')
     search.load_previews()
 
+def asset_type_callback(self, context):
+    #s = bpy.context.scene
+    #ui_props = s.blenderkitUI
+    if self.down_up == 'SEARCH':
+        items = (
+            ('MODEL', 'Search Models', 'Browse models', 'OBJECT_DATAMODE', 0),
+            # ('SCENE', 'SCENE', 'Browse scenes', 'SCENE_DATA', 1),
+            ('MATERIAL', 'Search Materials', 'Browse materials', 'MATERIAL', 2),
+            # ('TEXTURE', 'Texture', 'Browse textures', 'TEXTURE', 3),
+            ('BRUSH', 'Search Brushes', 'Browse brushes', 'BRUSH_DATA', 3)
+        )
+    else:
+        items = (
+            ('MODEL', 'Upload Model', 'Upload a model to BlenderKit', 'OBJECT_DATAMODE', 0),
+            # ('SCENE', 'SCENE', 'Browse scenes', 'SCENE_DATA', 1),
+            ('MATERIAL', 'Uplaod Material', 'Upload a material to BlenderKit', 'MATERIAL', 2),
+            # ('TEXTURE', 'Texture', 'Browse textures', 'TEXTURE', 3),
+            ('BRUSH', 'Upload Brush', 'Upload a brush to BlenderKit', 'BRUSH_DATA', 3)
+        )
+    return items
 
 class BlenderKitUIProps(PropertyGroup):
     down_up: EnumProperty(
         name="Download vs Upload",
         items=(
-            ('SEARCH', 'Search', 'Searching is active', 'VIEWZOOM', 0),
-            ('UPLOAD', 'Upload', 'Uploads are active', 'COPYDOWN', 1),
-            # ('RATING', 'Rating', 'Rating is active', 'SOLO_ON', 2)
+            ('SEARCH', 'Search', 'Sctivate searching', 'VIEWZOOM', 0),
+            ('UPLOAD', 'Upload', 'Activate uploading', 'COPYDOWN', 1),
+            # ('RATING', 'Rating', 'Activate rating', 'SOLO_ON', 2)
         ),
         description="BLenderKit",
         default="SEARCH",
     )
     asset_type: EnumProperty(
-        name="Active Asset Type",
-        items=(
-            ('MODEL', 'Model', 'Browse models', 'OBJECT_DATAMODE', 0),
-            # ('SCENE', 'SCENE', 'Browse scenes', 'SCENE_DATA', 1),
-            ('MATERIAL', 'Material', 'Browse models', 'MATERIAL', 2),
-            # ('TEXTURE', 'Texture', 'Browse textures', 'TEXTURE', 3),
-            ('BRUSH', 'Brush', 'Browse brushes', 'BRUSH_DATA', 3)
-        ),
+        name="BlenderKit Active Asset Type",
+        items=asset_type_callback,
         description="Activate asset in UI",
-        default="MATERIAL",
+        default=None,
         update=switch_search_results
     )
     # these aren't actually used ( by now, seems to better use globals in UI module:
@@ -399,7 +424,19 @@ def update_tags(self, context):
     if props.tags != ns:
         props.tags = ns
 
+def update_free(self, context):
+    if self.is_free == False:
+        self.is_free = True
+        title = "All BlenderKit materials are free"
+        message = "Any material uploaded to BlenderKit is free." \
+                  " However, it can still earn money for the author," \
+                  " based on our fair share system. " \
+                  "Part of subscription is sent to artists based on usage by paying users."
 
+        def draw_message(self, context):
+            ui_panels.label_multiline(self.layout, text=message, icon='NONE', width=-1)
+
+        bpy.context.window_manager.popup_menu(draw_message, title=title, icon='INFO')
 
 class BlenderKitCommonUploadProps(object):
     id: StringProperty(
@@ -465,6 +502,14 @@ class BlenderKitCommonUploadProps(object):
                     "Private assets are limited by quota.",
         default="PUBLIC",
     )
+
+    is_procedural: BoolProperty(name="Procedural",
+                          description="Asset is procedural - has no texture.",
+                          default=True
+                          )
+    node_count: IntProperty(name="Node count", description="Total nodes in the asset", default=0)
+    texture_count: IntProperty(name="Node count", description="Total nodes in the asset", default=0)
+    total_megapixels: IntProperty(name="Node count", description="Total nodes in the asset", default=0)
 
     # is_private: BoolProperty(name="Asset is Private",
     #                       description="If not marked private, your asset will go into the validation process automatically\n"
@@ -598,6 +643,11 @@ class BlenderKitMaterialUploadProps(PropertyGroup, BlenderKitCommonUploadProps):
         description="shaders used in asset, autofilled",
         default="",
     )
+
+    is_free: BoolProperty(name="Free for Everyone",
+                          description="You consent you want to release this asset as free for everyone",
+                          default=True, update=update_free
+                          )
 
     uv: BoolProperty(name="Needs UV", description="needs an UV set", default=False)
     # printable_3d : BoolProperty( name = "3d printable", description = "can be 3d printed", default = False)
@@ -763,19 +813,19 @@ class BlenderKitModelUploadProps(PropertyGroup, BlenderKitCommonUploadProps):
 
     manufacturer: StringProperty(
         name="Manufacturer",
-        description="Manufacturer, company making a design peace or product",
+        description="Manufacturer, company making a design peace or product. Not you",
         default="",
     )
 
     designer: StringProperty(
         name="Designer",
-        description="Author of the original design piece depicted",
+        description="Author of the original design piece depicted. Usually not you",
         default="",
     )
 
     design_collection: StringProperty(
         name="Design Collection",
-        description="Fill if this piece is part of a design collection",
+        description="Fill if this piece is part of a real world design collection",
         default="",
     )
 
@@ -1167,8 +1217,8 @@ class BlenderKitModelSearchProps(PropertyGroup, BlenderKitCommonSearchProps):
     append_method: EnumProperty(
         name="Import Method",
         items=(
-            ('LINK_COLLECTION', 'Link Collection', ''),
-            ('APPEND_OBJECTS', 'Append Objects', ''),
+            ('LINK_COLLECTION', 'Link', 'Link Collection'),
+            ('APPEND_OBJECTS', 'Append', 'Append as Objects'),
         ),
         description="choose if the assets will be linked or appended",
         default="LINK_COLLECTION"
@@ -1293,7 +1343,13 @@ class BlenderKitAddonPreferences(AddonPreferences):
 
     login_attempt: BoolProperty(
         name="Login/Signup attempt",
-        description="When this is on, BlenderKit is trying to connect and login.",
+        description="When this is on, BlenderKit is trying to connect and login",
+        default=False
+    )
+
+    show_on_start: BoolProperty(
+        name="Show assetbar when starting blender",
+        description="Show assetbar when starting blender",
         default=False
     )
 
@@ -1377,6 +1433,7 @@ class BlenderKitAddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+        layout.prop(self, "show_on_start")
 
         if self.api_key.strip() == '':
             if self.enable_oauth:
@@ -1481,10 +1538,15 @@ def register():
     bkit_oauth.register()
     tasks_queue.register()
 
+    bpy.app.timers.register(check_timers_timer)
+
     bpy.app.handlers.load_post.append(scene_load)
 
 
 def unregister():
+
+    bpy.app.timers.unregister(check_timers_timer)
+
     ui.unregister_ui()
     search.unregister_search()
     asset_inspector.unregister_asset_inspector()

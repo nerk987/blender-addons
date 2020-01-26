@@ -36,6 +36,7 @@ UI_IMPORTS = [
     'import math',
     'import json',
     'import collections',
+    'import traceback',
     'from math import pi',
     'from bpy.props import StringProperty',
     'from mathutils import Euler, Matrix, Quaternion, Vector',
@@ -1162,7 +1163,7 @@ class ScriptGenerator(base_generate.GeneratorPlugin):
 
         # Generate the UI script
         if metarig.data.rigify_rig_basename:
-            rig_ui_name = metarig.data.rigify_rig_basename + '_rig_ui.py'
+            rig_ui_name = metarig.data.rigify_rig_basename + '_ui.py'
         else:
             rig_ui_name = 'rig_ui.py'
 

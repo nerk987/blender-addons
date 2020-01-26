@@ -84,7 +84,7 @@ class Rig(BaseLimbRig):
     # IK controls
 
     def get_extra_ik_controls(self):
-        return [self.bones.ctrl.heel]
+        return super().get_extra_ik_controls() + [self.bones.ctrl.heel]
 
     def make_ik_control_bone(self, orgs):
         name = self.copy_bone(orgs[3], make_derived_name(orgs[2], 'ctrl', '_ik'))
@@ -107,7 +107,7 @@ class Rig(BaseLimbRig):
     def register_switch_parents(self, pbuilder):
         super().register_switch_parents(pbuilder)
 
-        pbuilder.register_parent(self, self.bones.org.main[3], exclude_self=True)
+        pbuilder.register_parent(self, self.bones.org.main[3], exclude_self=True, tags={'limb_end'})
 
     def make_ik_ctrl_widget(self, ctrl):
         create_foot_widget(self.obj, ctrl)

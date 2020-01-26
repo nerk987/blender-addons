@@ -56,7 +56,7 @@ from .Blocks import (
         )
 from bpy_extras import object_utils
 
-class add_mesh_wallb(Operator):
+class add_mesh_wallb(Operator, object_utils.AddObjectHelper):
     bl_idname = "mesh.wall_add"
     bl_label = "Add a Masonry Wall"
     bl_description = "Create a block (masonry) wall mesh"
@@ -639,6 +639,13 @@ class add_mesh_wallb(Operator):
             row.prop(self, "StepOnly", toggle=True)
             col.prop(self, "StepBack", toggle=True)
 
+        if self.change == False:
+            # generic transform props
+            box = layout.box()
+            box.prop(self, 'align', expand=True)
+            box.prop(self, 'location', expand=True)
+            box.prop(self, 'rotation', expand=True)
+
     # Respond to UI - get the properties set by user.
     # Check and process UI settings to generate masonry
 
@@ -873,7 +880,8 @@ class add_mesh_wallb(Operator):
                                         )
 
         if bpy.context.mode == "OBJECT":
-            if self.change == True and self.change != None:
+            if context.selected_objects != [] and context.active_object and \
+            ('Wall' in context.active_object.data.keys()) and (self.change == True):
                 obj = context.active_object
                 oldmesh = obj.data
                 oldmeshname = obj.data.name
@@ -887,7 +895,7 @@ class add_mesh_wallb(Operator):
             else:
                 mesh = bpy.data.meshes.new("Wall")
                 mesh.from_pydata(verts_array, [], faces_array)
-                obj = object_utils.object_data_add(context, mesh, operator=None)
+                obj = object_utils.object_data_add(context, mesh, operator=self)
             
             mesh.update()
             
@@ -902,7 +910,7 @@ class add_mesh_wallb(Operator):
             bpy.ops.object.mode_set(mode='OBJECT')
             mesh = bpy.data.meshes.new("TMP")
             mesh.from_pydata(verts_array, [], faces_array)
-            obj = object_utils.object_data_add(context, mesh, operator=None)
+            obj = object_utils.object_data_add(context, mesh, operator=self)
             obj.select_set(True)
             active_object.select_set(True)
             bpy.ops.object.join()

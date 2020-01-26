@@ -97,7 +97,7 @@ def ElbowJointParameters():
     ]
     return ElbowJointParameters
 
-class AddElbowJoint(Operator):
+class AddElbowJoint(Operator, object_utils.AddObjectHelper):
     bl_idname = "mesh.primitive_elbow_joint_add"
     bl_label = "Add Pipe Elbow"
     bl_description = "Construct an elbow pipe mesh"
@@ -161,6 +161,13 @@ class AddElbowJoint(Operator):
         box.prop(self, 'startLength')
         box.prop(self, 'endLength')
 
+        if self.change == False:
+            # generic transform props
+            box = layout.box()
+            box.prop(self, 'align', expand=True)
+            box.prop(self, 'location', expand=True)
+            box.prop(self, 'rotation', expand=True)
+
     def execute(self, context):
         radius = self.radius
         div = self.div
@@ -218,7 +225,8 @@ class AddElbowJoint(Operator):
         faces.extend(createFaces(loop2, loop3, closed=True))
         
         if bpy.context.mode == "OBJECT":
-            if self.change == True and self.change != None:
+            if (context.selected_objects != []) and context.active_object and \
+            ('ElbowJoint' in context.active_object.data.keys()) and (self.change == True):
                 obj = context.active_object
                 oldmesh = obj.data
                 oldmeshname = obj.data.name
@@ -230,7 +238,7 @@ class AddElbowJoint(Operator):
                 obj.data.name = oldmeshname
             else:
                 mesh = create_mesh(context, verts, [], faces, "Elbow Joint")
-                obj = object_utils.object_data_add(context, mesh, operator=None)
+                obj = object_utils.object_data_add(context, mesh, operator=self)
 
             mesh.update()
 
@@ -244,7 +252,7 @@ class AddElbowJoint(Operator):
             name_active_object = active_object.name
             bpy.ops.object.mode_set(mode='OBJECT')
             mesh = create_mesh(context, verts, [], faces, "TMP")
-            obj = object_utils.object_data_add(context, mesh, operator=None)
+            obj = object_utils.object_data_add(context, mesh, operator=self)
             obj.select_set(True)
             active_object.select_set(True)
             bpy.ops.object.join()
@@ -267,7 +275,7 @@ def TeeJointParameters():
     ]
     return TeeJointParameters
 
-class AddTeeJoint(Operator):
+class AddTeeJoint(Operator, object_utils.AddObjectHelper):
     bl_idname = "mesh.primitive_tee_joint_add"
     bl_label = "Add Pipe Tee-Joint"
     bl_description = "Construct a tee-joint pipe mesh"
@@ -343,6 +351,13 @@ class AddTeeJoint(Operator):
         box.prop(self, 'startLength')
         box.prop(self, 'endLength')
         box.prop(self, 'branchLength')
+
+        if self.change == False:
+            # generic transform props
+            box = layout.box()
+            box.prop(self, 'align', expand=True)
+            box.prop(self, 'location', expand=True)
+            box.prop(self, 'rotation', expand=True)
 
     def execute(self, context):
         radius = self.radius
@@ -465,7 +480,8 @@ class AddTeeJoint(Operator):
         faces.extend(createFaces(loopJoint3, loopMainEnd, closed=True))
         
         if bpy.context.mode == "OBJECT":
-            if self.change == True and self.change != None:
+            if (context.selected_objects != []) and context.active_object and \
+            ('TeeJoint' in context.active_object.data.keys()) and (self.change == True):
                 obj = context.active_object
                 oldmesh = obj.data
                 oldmeshname = obj.data.name
@@ -477,7 +493,7 @@ class AddTeeJoint(Operator):
                 obj.data.name = oldmeshname
             else:
                 mesh = create_mesh(context, verts, [], faces, "Tee Joint")
-                obj = object_utils.object_data_add(context, mesh, operator=None)
+                obj = object_utils.object_data_add(context, mesh, operator=self)
 
             mesh.update()
 
@@ -491,7 +507,7 @@ class AddTeeJoint(Operator):
             name_active_object = active_object.name
             bpy.ops.object.mode_set(mode='OBJECT')
             mesh = create_mesh(context, verts, [], faces, "TMP")
-            obj = object_utils.object_data_add(context, mesh, operator=None)
+            obj = object_utils.object_data_add(context, mesh, operator=self)
             obj.select_set(True)
             active_object.select_set(True)
             bpy.ops.object.join()
@@ -512,7 +528,7 @@ def WyeJointParameters():
     ]
     return WyeJointParameters
 
-class AddWyeJoint(Operator):
+class AddWyeJoint(Operator, object_utils.AddObjectHelper):
     bl_idname = "mesh.primitive_wye_joint_add"
     bl_label = "Add Pipe Wye-Joint"
     bl_description = "Construct a wye-joint pipe mesh"
@@ -597,6 +613,13 @@ class AddWyeJoint(Operator):
         box.prop(self, 'startLength')
         box.prop(self, 'branch1Length')
         box.prop(self, 'branch2Length')
+
+        if self.change == False:
+            # generic transform props
+            box = layout.box()
+            box.prop(self, 'align', expand=True)
+            box.prop(self, 'location', expand=True)
+            box.prop(self, 'rotation', expand=True)
 
     def execute(self, context):
         radius = self.radius
@@ -729,7 +752,8 @@ class AddWyeJoint(Operator):
         faces.extend(createFaces(loopJoint3, loopArm2, closed=True))
         
         if bpy.context.mode == "OBJECT":
-            if self.change == True and self.change != None:
+            if (context.selected_objects != []) and context.active_object and \
+            ('WyeJoint' in context.active_object.data.keys()) and (self.change == True):
                 obj = context.active_object
                 oldmesh = obj.data
                 oldmeshname = obj.data.name
@@ -741,7 +765,7 @@ class AddWyeJoint(Operator):
                 obj.data.name = oldmeshname
             else:
                 mesh = create_mesh(context, verts, [], faces, "Wye Joint")
-                obj = object_utils.object_data_add(context, mesh, operator=None)
+                obj = object_utils.object_data_add(context, mesh, operator=self)
 
             mesh.update()
 
@@ -755,7 +779,7 @@ class AddWyeJoint(Operator):
             name_active_object = active_object.name
             bpy.ops.object.mode_set(mode='OBJECT')
             mesh = create_mesh(context, verts, [], faces, "TMP")
-            obj = object_utils.object_data_add(context, mesh, operator=None)
+            obj = object_utils.object_data_add(context, mesh, operator=self)
             obj.select_set(True)
             active_object.select_set(True)
             bpy.ops.object.join()
@@ -780,7 +804,7 @@ def CrossJointParameters():
     ]
     return CrossJointParameters
 
-class AddCrossJoint(Operator):
+class AddCrossJoint(Operator, object_utils.AddObjectHelper):
     bl_idname = "mesh.primitive_cross_joint_add"
     bl_label = "Add Pipe Cross-Joint"
     bl_description = "Construct a cross-joint pipe mesh"
@@ -878,6 +902,13 @@ class AddCrossJoint(Operator):
         box.prop(self, 'branch1Length')
         box.prop(self, 'branch2Length')
         box.prop(self, 'branch3Length')
+
+        if self.change == False:
+            # generic transform props
+            box = layout.box()
+            box.prop(self, 'align', expand=True)
+            box.prop(self, 'location', expand=True)
+            box.prop(self, 'rotation', expand=True)
 
     def execute(self, context):
         radius = self.radius
@@ -1057,7 +1088,8 @@ class AddCrossJoint(Operator):
         faces.extend(createFaces(loopJoint4, loopArm3, closed=True))
         
         if bpy.context.mode == "OBJECT":
-            if self.change == True and self.change != None:
+            if (context.selected_objects != []) and context.active_object and \
+            ('CrossJoint' in context.active_object.data.keys()) and (self.change == True):
                 obj = context.active_object
                 oldmesh = obj.data
                 oldmeshname = obj.data.name
@@ -1069,7 +1101,7 @@ class AddCrossJoint(Operator):
                 obj.data.name = oldmeshname
             else:
                 mesh = create_mesh(context, verts, [], faces, "Cross Joint")
-                obj = object_utils.object_data_add(context, mesh, operator=None)
+                obj = object_utils.object_data_add(context, mesh, operator=self)
 
             mesh.update()
 
@@ -1083,7 +1115,7 @@ class AddCrossJoint(Operator):
             name_active_object = active_object.name
             bpy.ops.object.mode_set(mode='OBJECT')
             mesh = create_mesh(context, verts, [], faces, "TMP")
-            obj = object_utils.object_data_add(context, mesh, operator=None)
+            obj = object_utils.object_data_add(context, mesh, operator=self)
             obj.select_set(True)
             active_object.select_set(True)
             bpy.ops.object.join()
@@ -1103,7 +1135,7 @@ def NJointParameters():
     ]
     return NJointParameters
 
-class AddNJoint(Operator):
+class AddNJoint(Operator, object_utils.AddObjectHelper):
     bl_idname = "mesh.primitive_n_joint_add"
     bl_label = "Add Pipe N-Joint"
     bl_description = "Construct a n-joint pipe mesh"
@@ -1157,6 +1189,13 @@ class AddNJoint(Operator):
         box.prop(self, 'div')
         box.prop(self, 'number')
         box.prop(self, 'length')
+
+        if self.change == False:
+            # generic transform props
+            box = layout.box()
+            box.prop(self, 'align', expand=True)
+            box.prop(self, 'location', expand=True)
+            box.prop(self, 'rotation', expand=True)
 
     def execute(self, context):
         radius = self.radius
@@ -1282,7 +1321,8 @@ class AddNJoint(Operator):
                 loopsEndCircles[loopIdx], closed=True))
         
         if bpy.context.mode == "OBJECT":
-            if self.change == True and self.change != None:
+            if (context.selected_objects != []) and context.active_object and \
+            ('NJoint' in context.active_object.data.keys()) and (self.change == True):
                 obj = context.active_object
                 oldmesh = obj.data
                 oldmeshname = obj.data.name
@@ -1294,7 +1334,7 @@ class AddNJoint(Operator):
                 obj.data.name = oldmeshname
             else:
                 mesh = create_mesh(context, verts, [], faces, "N Joint")
-                obj = object_utils.object_data_add(context, mesh, operator=None)
+                obj = object_utils.object_data_add(context, mesh, operator=self)
 
             obj.data["NJoint"] = True
             obj.data["change"] = False
@@ -1306,12 +1346,11 @@ class AddNJoint(Operator):
             name_active_object = active_object.name
             bpy.ops.object.mode_set(mode='OBJECT')
             mesh = create_mesh(context, verts, [], faces, "TMP")
-            obj = object_utils.object_data_add(context, mesh, operator=None)
+            obj = object_utils.object_data_add(context, mesh, operator=self)
             obj.select_set(True)
             active_object.select_set(True)
             bpy.ops.object.join()
             context.active_object.name = name_active_object
             bpy.ops.object.mode_set(mode='EDIT')
-            
 
         return {'FINISHED'}
